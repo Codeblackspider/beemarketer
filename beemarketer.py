@@ -2,7 +2,6 @@ import sys
 import requests
 from bs4 import BeautifulSoup
 import re
-import validators
 from PIL import Image
 import io
 import htmlmin
@@ -161,7 +160,8 @@ def content_generator():
 
 def email_validator():
     email = input("\033[34mEnter an email address to validate: \033[0m")
-    if validators.email(email):
+    # Basic regex for email validation
+    if re.match(r"[^@]+@[^@]+\.[^@]+", email):
         print("\033[35mValid email address.\033[0m")
     else:
         print("\033[35mInvalid email address.\033[0m")
@@ -222,31 +222,24 @@ def broken_link_checker():
     response = requests.get(url)
     soup = BeautifulSoup(response.text, 'html.parser')
     
-    broken_links = []
-    for link in soup.find_all('a', href=True):
-        link_url = urljoin(url, link['href'])
-        try:
-            resp = requests.head(link_url, allow_redirects=True)
-            if resp.status_code != 200:
-                broken_links.append(link_url)
-        except requests.RequestException:
-            broken_links.append(link_url)
-    
     print("\033[35mBroken Links:\033[0m")
-    for link in broken_links:
-        print(link)
+    for link in soup.find_all('a', href=True):
+        try:
+            res = requests.head(link['href'], allow_redirects=True)
+            if res.status_code != 200:
+                print(f"{link['href']} - Status Code: {res.status_code}")
+        except requests.RequestException as e:
+            print(f"{link['href']} - Error: {e}")
     
     back_to_menu()
 
 def html_minifier():
-    url = input("\033[34mEnter the URL of the HTML to minify: \033[0m")
+    url = input("\033[34mEnter the URL of the HTML page to minify: \033[0m")
     response = requests.get(url)
-    minified_html = htmlmin.minify(response.text, remove_comments=True, remove_empty_space=True)
+    minified_html = htmlmin.minify(response.text)
     
-    with open("minified.html", "w") as file:
-        file.write(minified_html)
-    
-    print("\033[35mMinified HTML saved to minified.html\033[0m")
+    print("\033[35mMinified HTML:\033[0m")
+    print(minified_html)
     
     back_to_menu()
 
@@ -257,11 +250,9 @@ def basic_image_optimizer():
     
     optimized_image = io.BytesIO()
     image.save(optimized_image, format='JPEG', optimize=True, quality=85)
+    optimized_image.seek(0)
     
-    with open("optimized_image.jpg", "wb") as file:
-        file.write(optimized_image.getvalue())
-    
-    print("\033[35mOptimized image saved to optimized_image.jpg\033[0m")
+    print("\033[35mImage optimized successfully.\033[0m")
     
     back_to_menu()
 
